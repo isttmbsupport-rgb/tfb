@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>TFB — Банк возможностей</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+
+  :root{
+    --bg:#ffffff;--card:#f5f5f9;--card-2:#ededf4;--text:#0d1117;--muted:#6b7280;
+    --border:#e6e8ec;--accent:#7c3aed;--accent-hover:#6d28d9;--accent-text:#fff;
+    --income:#0a7d54;--expense:#b3261e;--success:#10b981;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#0a0a10;--card:#16161f;--card-2:#1f1f2b;--text:#e6edf3;--muted:#8b949e;
+      --border:#2a2a37;--accent:#e6edf3;--accent-hover:#fff;--accent-text:#0a0a10;
+      --income:#4ade80;--expense:#f87171;}
+  }
+
+  html,body{height:100%;overflow-x:hidden}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;
+    display:flex;justify-content:center;min-height:100vh;
+    padding:max(16px, env(safe-area-inset-top)) 12px max(16px, env(safe-area-inset-bottom))}
+  #app{width:100%;max-width:460px;min-height:100%;display:flex;flex-direction:column}
+
+  .auth{background:var(--card);border-radius:20px;padding:36px 28px}
+  .brand{font-size:26px;font-weight:800;letter-spacing:.06em;margin-bottom:4px}
+  .brand-sub{color:var(--muted);font-size:13px;margin-bottom:32px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+  .field input,.field select,.field textarea{width:100%;padding:13px 14px;border:1px solid var(--border);border-radius:12px;font-size:15px;background:var(--card-2);font-family:inherit;color:var(--text);resize:none}
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--accent);background:var(--bg)}
+  .field select{appearance:none}
+
+  .btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:var(--accent-text);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+  .btn:hover{background:var(--accent-hover)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-ghost{background:var(--card-2);color:var(--text);border:1px solid var(--border)}
+  .btn-ghost:hover{background:var(--card)}
+  .btn-danger{background:transparent;color:var(--expense);border:1px solid var(--expense)}
+  .btn-danger:hover{background:var(--expense);color:#fff}
+  .err{color:var(--expense);font-size:13px;margin-top:10px;min-height:18px;word-break:break-word;line-height:1.5}
+
+  .topbar{display:flex;justify-content:space-between;align-items:center;padding:0 4px 16px}
+  .topbar .brand{font-size:20px;margin:0}
+  .logout{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;font-family:inherit;padding:6px 10px;border-radius:8px}
+  .logout:hover{background:var(--card);color:var(--text)}
+
+  .balance-card{background:var(--card);border-radius:20px;padding:22px;margin-bottom:16px}
+  .balance-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;font-weight:600}
+  .balance-value{font-size:32px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+  .balance-value small{font-size:19px;font-weight:700;color:var(--muted)}
+  .divider{height:1px;background:var(--border);margin:16px 0}
+  .bonus-row{display:flex;justify-content:space-between;align-items:baseline}
+  .bonus-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+  .bonus-value{font-size:19px;font-weight:800}
+
+  .subs-wrap{margin:0 -4px 16px;padding:0 4px}
+  .subs-scroller{display:flex;gap:12px;overflow-x:auto;scrollbar-width:none;padding:4px 0 6px}
+  .subs-scroller::-webkit-scrollbar{display:none}
+  .sub-card{flex:0 0 168px;background:var(--card);border-radius:24px;padding:16px;cursor:pointer;transition:.2s;border:1px solid transparent;min-height:158px;display:flex;flex-direction:column;justify-content:space-between;user-select:none}
+  .sub-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .sub-card.active{background:var(--accent);color:var(--accent-text)}
+  .sub-card.active .sub-card-name,.sub-card.active .sub-card-price,.sub-card.active .sub-card-short{color:var(--accent-text)}
+  .sub-card.active .sub-card-short{opacity:.8}
+  .sub-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+  .sub-monogram{width:38px;height:38px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:17px;flex-shrink:0}
+  .sub-card.active .sub-monogram{background:rgba(255,255,255,.2)!important;color:#fff}
+  .sub-card-name{font-size:15px;font-weight:800;line-height:1.2}
+  .sub-card-short{font-size:11px;color:var(--muted);line-height:1.35;margin-top:6px}
+  .sub-card-price{font-size:13px;font-weight:800;margin-top:auto;padding-top:10px}
+  .sub-card-price small{color:var(--muted);font-weight:600;font-size:11px}
+  .sub-badge{background:var(--income);color:#fff;font-size:9px;font-weight:800;padding:3px 6px;border-radius:6px;letter-spacing:.04em}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .tile{background:var(--card);border-radius:20px;aspect-ratio:1/1;padding:14px;cursor:pointer;transition:.15s;border:1px solid transparent;display:flex;flex-direction:column;justify-content:space-between}
+  .tile:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .tile-title{font-size:12.5px;font-weight:800;line-height:1.2}
+  .tile-sub{font-size:10.5px;color:var(--muted);line-height:1.3}
+  .tile.admin{background:var(--accent);color:var(--accent-text)}
+  .tile.admin .tile-sub{color:var(--accent-text);opacity:.7}
+
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center;padding:0;z-index:100;opacity:0;pointer-events:none;transition:.18s}
+  .modal.open{opacity:1;pointer-events:auto}
+  @media (min-width:520px){
+    .modal{align-items:center;padding:16px}
+  }
+  .modal-card{background:var(--bg);border-radius:24px 24px 0 0;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:24px 22px calc(24px + env(safe-area-inset-bottom));position:relative;transform:translateY(20px);transition:transform .25s}
+  .modal.open .modal-card{transform:translateY(0)}
+  @media (min-width:520px){
+    .modal-card{border-radius:22px}
+  }
+  @media (prefers-color-scheme: dark){.modal-card{background:var(--card)}}
+  .modal-close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;border:none;background:var(--card-2);font-size:18px;cursor:pointer;color:var(--muted);font-family:inherit;z-index:2}
+  .modal h2{font-size:20px;margin-bottom:4px;font-weight:800}
+  .modal .sub{color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.5}
+
+  .center-amount{text-align:center;padding:20px 0 10px}
+  .center-amount .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;font-weight:600}
+  .center-amount .num{font-size:36px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+  .center-amount .num small{font-size:22px;font-weight:700;color:var(--muted)}
+  .center-amount .hint{color:var(--income);font-size:13px;font-weight:700;margin-top:8px}
+
+  .row{display:flex;justify-content:space-between;font-size:13.5px;padding:10px 0;border-bottom:1px solid var(--border)}
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--muted)}
+  .row .v{font-weight:700}
+
+  .hist-item{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+  .hist-item:last-child{border-bottom:none}
+  .hist-left{flex:1;min-width:0;padding-right:12px}
+  .hist-desc{font-size:13.5px;font-weight:500;word-break:break-word}
+  .hist-date{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .hist-amount{font-size:14px;font-weight:700;white-space:nowrap}
+  .hist-amount.plus{color:var(--income)}
+  .hist-amount.minus{color:var(--expense)}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:26px 0}
+
+  .user-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);gap:10px}
+  .user-row:last-child{border-bottom:none}
+  .user-info{flex:1;min-width:0}
+  .user-name{font-size:14px;font-weight:700}
+  .user-meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.5}
+
+  .shop-item{border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
+  .shop-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px}
+  .shop-item-title{font-size:15px;font-weight:800}
+  .shop-item-price{font-size:13px;font-weight:800;color:var(--accent);white-space:nowrap}
+  .shop-item-desc{font-size:12.5px;color:var(--muted);line-height:1.55;margin-bottom:12px}
+
+  .product-card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;cursor:pointer;border:1px solid transparent;transition:.15s;display:flex;gap:14px;align-items:center}
+  .product-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .product-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:22px;flex-shrink:0}
+  .product-body{flex:1;min-width:0}
+  .product-name{font-size:15px;font-weight:800;margin-bottom:3px}
+  .product-short{font-size:12px;color:var(--muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  .detail-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px}
+  .detail-body{font-size:14px;line-height:1.7;color:var(--text);white-space:pre-line;margin-bottom:20px}
+
+  .card-visual{background:linear-gradient(135deg, var(--accent), #a855f7);border-radius:18px;padding:20px;color:#fff;margin-bottom:14px;position:relative;overflow:hidden}
+  .card-visual.blocked{background:linear-gradient(135deg, #6b7280, #4b5563)}
+  .card-visual::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;background:rgba(255,255,255,.1);border-radius:50%}
+  .card-number{font-family:Menlo,Monaco,monospace;font-size:17px;letter-spacing:2px;margin:20px 0 12px;font-weight:700}
+  .card-holder{font-size:11px;letter-spacing:.15em;text-transform:uppercase;opacity:.85}
+  .card-brand{position:absolute;top:20px;right:20px;font-weight:800;font-size:13px;letter-spacing:.1em}
+
+  .cat-chip{display:inline-block;padding:8px 14px;margin:4px 6px 4px 0;border-radius:20px;background:var(--card-2);border:1px solid var(--border);font-size:13px;font-weight:600;cursor:pointer;transition:.15s;user-select:none}
+  .cat-chip.selected{background:var(--accent);color:var(--accent-text);border-color:transparent}
+
+  .mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt20{margin-top:20px}
+  .hidden{display:none!important}
+  .loading{text-align:center;color:var(--muted);padding:20px 0;font-size:13px}
+  .flex-gap{display:flex;gap:10px}
+  .section-title{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:800;margin:20px 0 10px}
+
+  .success-overlay{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;opacity:0;pointer-events:none;transition:opacity .25s}
+  @media (prefers-color-scheme: dark){.success-overlay{background:#0a0a10}}
+  .success-overlay.show{opacity:1;pointer-events:auto}
+  .success-circle{width:108px;height:108px;border-radius:50%;background:var(--success);display:flex;align-items:center;justify-content:center;box-shadow:0 20px 60px rgba(16,185,129,.35);transform:scale(0);transition:transform .5s cubic-bezier(.34,1.56,.64,1)}
+  .success-overlay.show .success-circle{transform:scale(1)}
+  .success-circle svg{width:56px;height:56px}
+  .success-circle svg path{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:50;stroke-dashoffset:50;transition:stroke-dashoffset .45s ease-out .25s}
+  .success-overlay.show .success-circle svg path{stroke-dashoffset:0}
+  .success-text{margin-top:24px;font-size:17px;font-weight:800;color:#0d1117;opacity:0;transform:translateY(6px);transition:opacity .3s ease .5s, transform .3s ease .5s}
+  @media (prefers-color-scheme: dark){.success-text{color:#e6edf3}}
+  .success-overlay.show .success-text{opacity:1;transform:translateY(0)}
+
+  .welcome-overlay{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9998;opacity:0;pointer-events:none;transition:opacity .3s}
+  @media (prefers-color-scheme: dark){.welcome-overlay{background:#0a0a10}}
+  .welcome-overlay.show{opacity:1;pointer-events:auto}
+  .welcome-avatar{width:112px;height:112px;border-radius:50%;background:linear-gradient(135deg, #7c3aed, #a855f7);display:flex;align-items:center;justify-content:center;color:#fff;font-size:52px;font-weight:800;box-shadow:0 24px 64px rgba(124,58,237,.4);transform:scale(0) rotate(-15deg);transition:transform .55s cubic-bezier(.34,1.56,.64,1)}
+  .welcome-overlay.show .welcome-avatar{transform:scale(1) rotate(0)}
+  .welcome-text{margin-top:28px;font-size:20px;font-weight:800;color:#0d1117;text-align:center;padding:0 24px;opacity:0;transform:translateY(8px);transition:opacity .4s ease .4s, transform .4s ease .4s}
+  @media (prefers-color-scheme: dark){.welcome-text{color:#e6edf3}}
+  .welcome-sub{margin-top:8px;font-size:13px;font-weight:600;color:#6b7280;opacity:0;transition:opacity .4s ease .55s}
+  .welcome-overlay.show .welcome-text,.welcome-overlay.show .welcome-sub{opacity:1;transform:translateY(0)}
+
+  input[type="range"]{width:100%;-webkit-appearance:none;height:6px;background:var(--card-2);border-radius:3px;outline:none}
+  input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+  input[type="range"]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);cursor:pointer;border:none}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Логин показывается ТОЛЬКО если нет сохранённых данных -->
+  <div id="authScreen" class="auth hidden">
+    <div class="brand">TFB</div>
+    <div class="brand-sub">Банк возможностей</div>
+    <div class="field"><label>Имя</label><input id="authName" type="text" placeholder="Введите имя" autocomplete="off"></div>
+    <div class="field"><label>Пароль</label><input id="authPass" type="password" placeholder="Введите пароль" autocomplete="off"></div>
+    <button class="btn mt8" id="authBtn">Войти</button>
+    <div class="err" id="authErr"></div>
+  </div>
+
+  <div id="mainScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar">
+      <div class="brand">TFB</div>
+      <button class="logout" onclick="logout()">Выйти</button>
+    </div>
+    <div class="balance-card">
+      <div class="balance-label">Сумма на счету</div>
+      <div class="balance-value" id="balanceValue">0 <small>₽</small></div>
+      <div class="divider"></div>
+      <div class="bonus-row">
+        <div class="bonus-label">Бонусы</div>
+        <div class="bonus-value" id="bonusValue">0</div>
+      </div>
+    </div>
+    <div class="subs-wrap"><div class="subs-scroller" id="subsScroller"></div></div>
+    <div class="grid" id="grid"></div>
+  </div>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="success-overlay" id="successOverlay">
+  <div class="success-circle"><svg viewBox="0 0 52 52"><path d="M14 27 L22 35 L38 19"/></svg></div>
+  <div class="success-text">Операция выполнена</div>
+</div>
+
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-avatar" id="welcomeAvatar">A</div>
+  <div class="welcome-text" id="welcomeText">Здравствуйте</div>
+  <div class="welcome-sub">Добро пожаловать в TFB</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+'use strict';
+
+var SUPABASE_URL  = 'https://pacbovuetaiyuulwspty.supabase.co';
+var SUPABASE_ANON = 'sb_publishable_2ZI53hfc9Gs8RcXtIG2FUA_GtyuAXC3';
+
+var ANNUAL_RATE      = 0.07;
+var DAYS_IN_YEAR     = 365;
+var CREDIT_ANNUAL    = 0.75;
+var CREDIT_DAILY     = CREDIT_ANNUAL / DAYS_IN_YEAR;
+var BONUS_TTL_DAYS   = 30;
+var BONUS_TO_RUB     = 0.5;
+var SUB_PERIOD_DAYS  = 30;
+var SUB_CASHBACK     = 0.07;
+var INS_PERIOD_DAYS  = 30;
+var INS_CASHBACK     = 0.07;
+
+var sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ============== УТИЛИТЫ ============== */
+var fmt = function(n){
+  return new Intl.NumberFormat('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2}).format(Number(n) || 0);
+};
+var fmtInt = function(n){
+  return new Intl.NumberFormat('ru-RU').format(Number(n) || 0);
+};
+var round2 = function(n){ return parseFloat((Number(n) || 0).toFixed(2)); };
+
+function calendarDaysBetween(d1, d2){
+  var a = new Date(d1.getFullYear(), d1.getMonth(), d1.getDate());
+  var b = new Date(d2.getFullYear(), d2.getMonth(), d2.getDate());
+  return Math.round((b - a) / 86400000);
+}
+function plural(n, one, few, many){
+  var m10 = n%10, m100 = n%100;
+  if (m10===1 && m100!==11) return one;
+  if (m10>=2 && m10<=4 && (m100<10||m100>=20)) return few;
+  return many;
+}
+function dateRu(d){
+  var p = function(x){ return String(x).padStart(2,'0'); };
+  return p(d.getDate()) + '.' + p(d.getMonth()+1) + '.' + d.getFullYear();
+}
+function randomCardNumber(){
+  var s = '';
+  for (var i=0;i<16;i++) s += Math.floor(Math.random()*10);
+  return s.replace(/(.{4})/g,'$1 ').trim();
+}
+
+/* ============== АНИМАЦИИ ============== */
+var successTimer = null;
+function showSuccess(afterCb){
+  var el = document.getElementById('successOverlay');
+  if (!el) return;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  if (successTimer) clearTimeout(successTimer);
+  successTimer = setTimeout(function(){
+    el.classList.remove('show');
+    if (typeof afterCb === 'function') setTimeout(afterCb, 260);
+  }, 1500);
+}
+
+/* ПРИВЕТСТВИЕ — теперь показывается ВСЕГДА при каждом входе/перезагрузке */
+function showWelcome(name){
+  var el = document.getElementById('welcomeOverlay');
+  if (!el) return;
+  document.getElementById('welcomeAvatar').textContent = (name || '?').charAt(0).toUpperCase();
+  document.getElementById('welcomeText').textContent = 'Здравствуйте, ' + name;
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 1700);
+}
+
+/* ============== КАТАЛОГ ПОДПИСОК ============== */
+var SUBSCRIPTIONS = [
+  { code:'extra',   name:'Экстра',        price:87, color:'#7c3aed', short:'Привилегированные доставки вне очереди',
+    desc:'Экстра — ваша личная привилегия в мире доставки TFB. С этой подпиской каждый заказ обрабатывается вне общей очереди, а курьеры получают его в приоритетном порядке. Пока другие ждут, ваш заказ уже в пути. Подписка распространяется на все сервисы экосистемы: еда, продукты, посылки и документы. Среднее время ожидания сокращается в 1,7 раза.\n\nВ подписку входит персональный менеджер поддержки, который отвечает на обращения в течение двух минут. Экстра активируется мгновенно после оформления и действует по всему городу. Отменить можно в любой момент — без штрафов и скрытых условий.\n\nПри оплате за рубли начисляется 7% бонусами.' },
+  { code:'plus',    name:'Плюс',          price:47, color:'#ec4899', short:'Отборные сплетни и закрытые истории',
+    desc:'Плюс — закрытый клуб самых интересных новостей и отборных сплетен, доступных только подписчикам. Каждый день редакция TFB готовит персональную подборку: свежие истории из мира финансов, закулисные разговоры, звёздные подробности и то, о чём не пишут в открытых источниках.\n\nМы тщательно проверяем каждую историю и отбираем только то, что действительно достойно внимания. Никакого информационного шума — только концентрат самого интересного.\n\nПри оплате за рубли начисляется 7% бонусами.' },
+  { code:'protect', name:'Защита счета',  price:10, color:'#0ea5e9', short:'Круглосуточный мониторинг операций',
+    desc:'Защита счета — это спокойствие и уверенность в каждой операции. Подписка включает круглосуточный мониторинг всех транзакций и мгновенные уведомления о подозрительной активности. Мы анализируем каждое списание с помощью алгоритмов и, если замечаем что-то нетипичное, немедленно блокируем операцию.\n\nВ подписку входит страховка от мошеннических действий: если средства всё же будут списаны незаконно, мы вернём их в течение 24 часов.\n\nПри оплате за рубли начисляется 7% бонусами.' },
+  { code:'noads',   name:'Анти реклама',  price:55, color:'#64748b', short:'Отключение рекламы во всех сервисах TFB',
+    desc:'Анти реклама — ваш личный фильтр от всего лишнего. Подписка полностью отключает рекламные баннеры, промо-блоки, всплывающие окна и персонализированные предложения во всех сервисах экосистемы TFB. Вы больше не увидите навязчивых сообщений и сможете сосредоточиться на главном.\n\nИнтерфейс становится чистым и минималистичным, загрузка страниц ускоряется в среднем на 34%, а время работы от батареи увеличивается.\n\nПри оплате за рубли начисляется 7% бонусами.' },
+  { code:'drive',   name:'Драйв',         price:35, color:'#f59e0b', short:'Ускоренные курьеры и точные слоты',
+    desc:'Драйв — для тех, кто не привык ждать. Эта подписка даёт доступ к отдельной команде ускоренных курьеров, которые передвигаются на скоростном транспорте и работают по специальному маршруту. Среднее время доставки сокращается до 25 минут — даже в час пик и плохую погоду.\n\nКурьеры Драйв проходят дополнительное обучение и строгий отбор. В подписку входит возможность выбора точного временного слота и функция «доставить за 15 минут».\n\nПри оплате за рубли начисляется 7% бонусами.' },
+  { code:'ultracb', name:'Ультра кешбэк', price:85, color:'#10b981', short:'Удвоение бонусов с каждой покупки',
+    desc:'Ультра кешбэк — максимальная выгода от каждой покупки. С этой подпиской все начисляемые бонусы автоматически удваиваются: где раньше вы получали 5%, теперь получаете 10%, где было 7% — станет 14%. Работает во всех сервисах TFB и суммируется с другими акциями.\n\nБонусы можно тратить в магазине TFB: обменивать на пополнение накоплений, оплачивать подписки или использовать для покупок внутри экосистемы.\n\nПри оплате за рубли начисляется 7% бонусами.' }
+];
+
+/* ============== КАТАЛОГ СТРАХОВОК ============== */
+var INSURANCE = [
+  { code:'cyber',      name:'Киберстрахование',           icon:'К', color:'#7c3aed',
+    short:'Защита от хакерских атак, фишинга и кражи данных',
+    desc:'Застрахуйте свои цифровые риски и получите защиту от хакерских атак, фишинга, кражи денег со счетов и утечки персональных данных.\n\nЧто покрывает: несанкционированные списания, взлом аккаунтов, мошенничество в интернете, расходы на восстановление данных, юридическую поддержку, требования выкупа при кибервымогательстве.\n\nКому подходит: активным пользователям онлайн-банков, фрилансерам, малому бизнесу, всем, кто хранит важные данные в сети.\n\nПочему интересно: мы всё чаще платим и работаем онлайн, а обычная страховка имущества такие риски не закрывает.' },
+  { code:'card',       name:'Страхование карты',          icon:'К', color:'#0ea5e9',
+    short:'Защита от мошеннических списаний и скимминга',
+    desc:'Застрахуйте банковскую карту и защитите деньги от мошеннических списаний, скимминга и несанкционированных онлайн-операций.\n\nЧто покрывает: операции, которые вы не совершали, кражу данных карты, скимминг, фишинг, расходы на перевыпуск карты и юридическую помощь.\n\nКому подходит: всем держателям дебетовых и кредитных карт, особенно тем, кто часто платит онлайн.\n\nПочему интересно: это недорогая защита от самого частого бытового финансового риска.' },
+  { code:'job',        name:'Потеря работы',              icon:'П', color:'#ec4899',
+    short:'Выплаты на время поиска нового места',
+    desc:'Застрахуйте себя от потери работы и получайте выплаты на время поиска нового места.\n\nЧто покрывает: вынужденное увольнение, сокращение, иногда — потерю работы по состоянию здоровья. Обычно выплачивают ежемесячное пособие в течение 3–6 месяцев.\n\nКому подходит: заёмщикам по ипотеке и кредитам, семьям с одним источником дохода, специалистам в нестабильных отраслях.\n\nПочему интересно: помогает пережить период без зарплаты без просрочек по обязательствам.' },
+  { code:'pet',        name:'Домашние питомцы',           icon:'П', color:'#10b981',
+    short:'Покрытие лечения, операций и визитов к ветеринару',
+    desc:'Застрахуйте домашнего питомца и получите покрытие лечения, операций и визитов к ветеринару.\n\nЧто покрывает: болезни, травмы, операции, лекарства, госпитализацию, профилактику и ответственность, если питомец укусил прохожего или испортил чужое имущество.\n\nКому подходит: владельцам собак и кошек, особенно пород, склонных к дорогим заболеваниям.\n\nПочему интересно: ветеринария может стоить как серьёзный ремонт, а полис делает помощь доступной.' },
+  { code:'device',     name:'Смартфон и техника',         icon:'Т', color:'#f59e0b',
+    short:'Защита от падения, кражи, залива и повреждений',
+    desc:'Застрахуйте смартфон, ноутбук или планшет от падения, кражи, залива и механических повреждений.\n\nЧто покрывает: случайные повреждения, падение в воду, разбитый экран, кражу, поломку после гарантийного срока.\n\nКому подходит: всем, кто носит дорогую технику с собой, студентам, путешественникам, удалённым сотрудникам.\n\nПочему интересно: ремонт флагманского смартфона или ноутбука часто сопоставим с ценой нового устройства.' },
+  { code:'travel',     name:'Туристическая',              icon:'Т', color:'#6366f1',
+    short:'Медицина, отмена рейса, потеря багажа',
+    desc:'Застрахуйте поездку за границу и получите покрытие медицинских расходов, отмены рейса и потери багажа.\n\nЧто покрывает: экстренную медицину, госпитализацию, медицинскую эвакуацию, отмену или задержку рейса, потерю багажа, активный отдых.\n\nКому подходит: всем, кто выезжает за рубеж, особенно семьям с детьми и путешественникам с хроническими болезнями.\n\nПочему интересно: без полиса лечение за границей может стоить сотни тысяч рублей, а для визы страховка часто обязательна.' },
+  { code:'dms',        name:'ДМС',                        icon:'Д', color:'#ef4444',
+    short:'Врачи, обследования и лечение без очередей',
+    desc:'Оформите добровольное медицинское страхование и получите доступ к врачам, обследованиям и лечению без очередей.\n\nЧто покрывает: консультации специалистов, диагностику, анализы, амбулаторное и стационарное лечение, стоматологию, телемедицину.\n\nКому подходит: сотрудникам компаний, семьям, людям, которые ценят время и комфорт.\n\nПочему интересно: позволяет быстро попасть к нужному врачу и пройти обследование без долгого ожидания.' },
+  { code:'critical',   name:'Критические заболевания',    icon:'К', color:'#dc2626',
+    short:'Крупная выплата при тяжёлом диагнозе',
+    desc:'Застрахуйте здоровье от критических заболеваний и получите крупную выплату при диагностировании рака, инфаркта или инсульта.\n\nЧто покрывает: определённый список тяжёлых диагнозов. Выплата обычно приходит единой суммой и не требует отчёта о расходах.\n\nКому подходит: людям 30–55 лет, кормильцам семьи, тем, у кого есть кредиты и обязательства.\n\nПочему интересно: деньги можно потратить на лечение, реабилитацию или компенсацию потерянного дохода.' },
+  { code:'preg',       name:'Беременность и роды',        icon:'Б', color:'#ec4899',
+    short:'Осложнения, ведение беременности и расходы',
+    desc:'Застрахуйте беременность и роды, чтобы покрыть осложнения, ведение беременности и медицинские расходы.\n\nЧто покрывает: наблюдение беременности, госпитализацию, кесарево сечение, осложнения, уход за новорождённым, консультации и анализы.\n\nКому подходит: женщинам, планирующим беременность, и семьям, которые хотят финансовой определённости.\n\nПочему интересно: роды и возможные осложнения — одна из самых дорогих и непредсказуемых медицинских ситуаций.' },
+  { code:'scooter',    name:'Электросамокат',             icon:'С', color:'#0891b2',
+    short:'Кража, аварии и ущерб третьим лицам',
+    desc:'Застрахуйте электросамокат и защитите себя от аварий, кражи и ущерба третьим лицам.\n\nЧто покрывает: кражу, повреждение самоката, травмы водителя, ущерб пешеходам и чужому имуществу, гражданскую ответственность.\n\nКому подходит: владельцам личных электросамокатов, курьерам, активным городским жителям.\n\nПочему интересно: самокаты стали полноценным транспортом, а риски аварий и краж растут вместе с популярностью.' },
+  { code:'rent',       name:'Аренда и ответственность',   icon:'А', color:'#7c3aed',
+    short:'Ущерб от пожара, затопления и жильцов',
+    desc:'Застрахуйте квартиру, которую вы сдаёте, или свою ответственность как арендатора, чтобы покрыть ущерб от пожара, затопления и недобросовестных жильцов.\n\nЧто покрывает: повреждение имущества, отделки, соседей, потерю арендного дохода, гражданскую ответственность перед третьими лицами.\n\nКому подходит: собственникам, сдающим жильё, и арендаторам, которые хотят защититься от случайного ущерба.\n\nПочему интересно: конфликты между арендодателем и жильцом часто заканчиваются крупными суммами.' },
+  { code:'cargo',      name:'Страхование грузов',         icon:'Г', color:'#0284c7',
+    short:'Потеря, повреждение, кража и задержка',
+    desc:'Застрахуйте груз и защитите товар от потери, повреждения, кражи и задержки в пути.\n\nЧто покрывает: повреждение при транспортировке, кражу, утрату, аварию транспорта, задержку и дополнительные расходы на хранение.\n\nКому подходит: интернет-магазинам, логистическим компаниям, предпринимателям, которые отправляют ценные товары.\n\nПочему интересно: одна потерянная партия может обернуться убытком, который несопоставим со стоимостью полиса.' },
+  { code:'legal',      name:'Юридические расходы',        icon:'Ю', color:'#475569',
+    short:'Адвокат в судебных спорах и конфликтах',
+    desc:'Застрахуйте юридические расходы и получите поддержку адвоката в судебных спорах, трудовых конфликтах и защите прав потребителей.\n\nЧто покрывает: консультации юриста, подготовку документов, представительство в суде, экспертизы, расходы проигравшей стороны.\n\nКому подходит: автовладельцам, собственникам жилья, сотрудникам, покупателям, малому бизнесу.\n\nПочему интересно: судебные расходы могут быть неожиданными и крупными, а полис делает защиту доступной.' },
+  { code:'tick',       name:'Укус клеща',                 icon:'У', color:'#65a30d',
+    short:'Диагностика, профилактика и лечение инфекций',
+    desc:'Застрахуйте себя от укуса клеща и получите покрытие диагностики, экстренной профилактики и лечения инфекций.\n\nЧто покрывает: анализы, иммуноглобулин, лечение клещевого энцефалита и боррелиоза, госпитализацию, реабилитацию.\n\nКому подходит: дачникам, туристам, охотникам, грибникам, всем, кто бывает в лесу и парках в сезон.\n\nПочему интересно: сезонный и очень конкретный риск, а лечение может быть дорогим и срочным.' },
+  { code:'collection', name:'Коллекции и искусство',      icon:'К', color:'#a16207',
+    short:'Кража, повреждение, пожар и исчезновение',
+    desc:'Застрахуйте коллекцию, антиквариат или предметы искусства от кражи, повреждения, пожара и исчезновения.\n\nЧто покрывает: кражу, пожар, затопление, случайное повреждение, повреждение при транспортировке и на выставке, реставрацию.\n\nКому подходит: коллекционерам, владельцам антиквариата, галереям, семьям с ценными предметами интерьера.\n\nПочему интересно: такие вещи сложно оценить и заменить, а стандартная страховка имущества часто их не покрывает.' }
+];
+
+/* ============== КАТЕГОРИИ КЕШБЭКА ============== */
+var CB_CATEGORIES = [
+  'Супермаркеты','АЗС','Кафе и рестораны','Развлечения','Транспорт',
+  'Онлайн-покупки','Аптеки','Кино','Путешествия','Одежда',
+  'Красота','Электроника','Дом и ремонт','Спорт','Книги'
+];
+
+/* ============== СОСТОЯНИЕ ============== */
+var currentUser = null;
+var userSubs = [];
+var userPolicies = [];
+var userCards = [];
+var historyList = [];
+var subsPaused = false, subsAnimId = null, subsLastTime = 0;
+var insuranceDraft = { code:null, monthlySum:100, months:6 };
+var cbDraft = [];
+
+function isAdmin(){
+  if (!currentUser) return false;
+  var v = currentUser.is_admin;
+  return v === true || v === 1 || v === '1' || v === 'true' || v === 't' || v === 'TRUE' || v === 'yes';
+}
+function subByCode(c){ for (var i=0;i<SUBSCRIPTIONS.length;i++) if (SUBSCRIPTIONS[i].code===c) return SUBSCRIPTIONS[i]; return null; }
+function insByCode(c){ for (var i=0;i<INSURANCE.length;i++) if (INSURANCE[i].code===c) return INSURANCE[i]; return null; }
+function activeSubCodes(){
+  var o = {}; for (var i=0;i<userSubs.length;i++) if (userSubs[i].active) o[userSubs[i].sub_code]=userSubs[i]; return o;
+}
+function activeInsCodes(){
+  var o = {}; for (var i=0;i<userPolicies.length;i++) if (userPolicies[i].active) o[userPolicies[i].insurance_code]=userPolicies[i]; return o;
+}
+function getCashbackCats(){
+  try { return JSON.parse(currentUser.cashback_categories || '[]'); } catch(e){ return []; }
+}
+
+/* ============== АВТОРИЗАЦИЯ ============== */
+document.getElementById('authBtn').onclick = doAuth;
+document.getElementById('authPass').addEventListener('keydown', function(e){ if(e.key==='Enter') doAuth(); });
+document.getElementById('authName').addEventListener('keydown', function(e){ if(e.key==='Enter') document.getElementById('authPass').focus(); });
+
+async function doAuth(){
+  var name = document.getElementById('authName').value.trim();
+  var pass = document.getElementById('authPass').value;
+  var errEl = document.getElementById('authErr');
+  errEl.textContent = '';
+  if (!name || !pass) { errEl.textContent = 'Заполните имя и пароль'; return; }
+  errEl.textContent = 'Подключение...';
+  try {
+    var res = await sb.from('users').select('*').eq('name', name).limit(1);
+    if (res.error) throw new Error('SELECT users: ' + res.error.message);
+    var u = (res.data && res.data[0]) || null;
+    if (!u) { errEl.textContent = 'Пользователь не найден. Регистрация закрыта.'; return; }
+    if (u.password !== pass) { errEl.textContent = 'Неверный пароль'; return; }
+    rememberUser(u.id, name, pass);
+    currentUser = u;
+    errEl.textContent = '';
+    await refresh();
+    showMain();
+    showWelcome(currentUser.name);
+  } catch(e){ errEl.textContent = e.message || 'Ошибка'; }
+}
+
+async function tryAutoLogin(name, pass){
+  try {
+    var res = await sb.from('users').select('*').eq('name', name).limit(1);
+    if (res.error) return false;
+    var u = (res.data && res.data[0]) || null;
+    if (!u || u.password !== pass) return false;
+    currentUser = u; rememberUser(u.id, name, pass);
+    await refresh(); return true;
+  } catch(e){ return false; }
+}
+
+function rememberUser(id, name, pass){
+  try {
+    localStorage.setItem('tfb_user_id', id);
+    localStorage.setItem('tfb_last_name', name);
+    localStorage.setItem('tfb_last_pass', pass);
+  } catch(e){}
+}
+function forgetUser(){
+  try {
+    localStorage.removeItem('tfb_user_id');
+    localStorage.removeItem('tfb_last_name');
+    localStorage.removeItem('tfb_last_pass');
+  } catch(e){}
+}
+
+async function logout(){
+  forgetUser();
+  currentUser = null; userSubs = []; userPolicies = []; userCards = []; historyList = [];
+  stopSubsAutoScroll();
+  document.getElementById('mainScreen').classList.add('hidden');
+  document.getElementById('authScreen').classList.remove('hidden');
+  document.getElementById('authName').value = '';
+  document.getElementById('authPass').value = '';
+  closeModal();
+}
+
+/* ============== НАЧИСЛЕНИЯ ============== */
+async function accrueSavings(){
+  if (!currentUser) return;
+  var last = currentUser.last_savings_accrual ? new Date(currentUser.last_savings_accrual) : new Date(currentUser.created_at || Date.now());
+  var now = new Date();
+  var days = calendarDaysBetween(last, now);
+  if (days <= 0) return;
+
+  var savings = Number(currentUser.savings) || 0;
+  if (savings <= 0){
+    await sb.from('users').update({ last_savings_accrual: now.toISOString() }).eq('id', currentUser.id);
+    currentUser.last_savings_accrual = now.toISOString();
+    return;
+  }
+  var dailyRate = ANNUAL_RATE / DAYS_IN_YEAR;
+  var balance = Number(currentUser.balance) || 0;
+  var baseDate = new Date(last.getFullYear(), last.getMonth(), last.getDate());
+
+  for (var i = 0; i < days; i++){
+    var interest = round2(savings * dailyRate);
+    if (interest > 0){
+      balance = round2(balance + interest);
+      var dd = new Date(baseDate.getTime()); dd.setDate(dd.getDate() + i + 1);
+      await sb.from('history').insert({
+        user_id: currentUser.id,
+        description: 'Начисление 7% годовых за ' + dateRu(dd),
+        amount: interest, kind: 'income'
+      });
+    }
+  }
+  await sb.from('users').update({ balance: balance, last_savings_accrual: now.toISOString() }).eq('id', currentUser.id);
+  currentUser.balance = balance;
+  currentUser.last_savings_accrual = now.toISOString();
+}
+
+async function accrueCreditInterest(){
+  if (!currentUser) return;
+  var debt = Number(currentUser.credit_debt) || 0;
+  if (debt <= 0){
+    var iso = new Date().toISOString();
+    await sb.from('users').update({ last_credit_accrual: iso }).eq('id', currentUser.id);
+    currentUser.last_credit_accrual = iso;
+    return;
+  }
+  var last = currentUser.last_credit_accrual ? new Date(currentUser.last_credit_accrual) : new Date(currentUser.created_at || Date.now());
+  var now = new Date();
+  var days = calendarDaysBetween(last, now);
+  if (days <= 0) return;
+
+  var cur = debt;
+  var baseDate = new Date(last.getFullYear(), last.getMonth(), last.getDate());
+  for (var i = 0; i < days; i++){
+    var before = cur;
+    cur = round2(cur * (1 + CREDIT_DAILY));
+    var interest = round2(cur - before);
+    var dd = new Date(baseDate.getTime()); dd.setDate(dd.getDate() + i + 1);
+    await sb.from('history').insert({
+      user_id: currentUser.id,
+      description: 'Проценты по кредитной карте за ' + dateRu(dd) + ' (75% годовых)',
+      amount: -interest, kind: 'expense'
+    });
+  }
+  await sb.from('users').update({ credit_debt: cur, last_credit_accrual: now.toISOString() }).eq('id', currentUser.id);
+  currentUser.credit_debt = cur;
+  currentUser.last_credit_accrual = now.toISOString();
+}
+
+async function expireBonuses(){
+  if (!currentUser) return;
+  var base = currentUser.bonuses_updated_at ? new Date(currentUser.bonuses_updated_at) : new Date(currentUser.created_at || Date.now());
+  var days = calendarDaysBetween(base, new Date());
+  if (days >= BONUS_TTL_DAYS && Number(currentUser.bonuses) > 0){
+    var lost = Number(currentUser.bonuses);
+    await sb.from('users').update({ bonuses: 0, bonuses_updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+    await sb.from('history').insert({ user_id: currentUser.id, description: 'Сгорели бонусы (срок 30 дней): ' + fmt(lost), amount: 0, kind: 'info' });
+    currentUser.bonuses = 0;
+    currentUser.bonuses_updated_at = new Date().toISOString();
+  }
+}
+
+async function processSubscriptions(){
+  if (!currentUser) return;
+  var now = new Date();
+  var r = await sb.from('user_subscriptions').select('*').eq('user_id', currentUser.id).eq('active', true);
+  if (r.error) return;
+  userSubs = r.data || [];
+  for (var i = 0; i < userSubs.length; i++){
+    var s = userSubs[i];
+    var meta = subByCode(s.sub_code);
+    if (!meta) continue;
+    var last = new Date(s.last_charged);
+    var periods = 0, iter = new Date(last.getTime());
+    while ((now - iter) >= SUB_PERIOD_DAYS * 86400000){ periods++; iter = new Date(iter.getTime() + SUB_PERIOD_DAYS * 86400000); }
+    if (periods === 0) continue;
+    var cost = round2(meta.price * periods);
+    if (Number(currentUser.balance) >= cost){
+      await sb.from('users').update({ balance: round2(Number(currentUser.balance) - cost) }).eq('id', currentUser.id);
+      await sb.from('user_subscriptions').update({ last_charged: iter.toISOString() }).eq('id', s.id);
+      await sb.from('history').insert({ user_id: currentUser.id, description: 'Оплата подписки «' + meta.name + '» за ' + periods + ' ' + plural(periods,'месяц','месяца','месяцев'), amount: -cost, kind: 'expense' });
+      currentUser.balance = round2(Number(currentUser.balance) - cost);
+      s.last_charged = iter.toISOString();
+    } else {
+      await sb.from('user_subscriptions').update({ active: false }).eq('id', s.id);
+      await sb.from('history').insert({ user_id: currentUser.id, description: 'Подписка «' + meta.name + '» прекращена — недостаточно средств', amount: 0, kind: 'info' });
+      s.active = false;
+    }
+  }
+}
+
+async function processPolicies(){
+  if (!currentUser) return;
+  var now = new Date();
+  var r = await sb.from('insurance_policies').select('*').eq('user_id', currentUser.id).eq('active', true);
+  if (r.error) return;
+  userPolicies = r.data || [];
+  for (var i = 0; i < userPolicies.length; i++){
+    var p = userPolicies[i];
+    var meta = insByCode(p.insurance_code);
+    if (!meta) continue;
+    var last = new Date(p.last_charged);
+    var periods = 0, iter = new Date(last.getTime());
+    while ((now - iter) >= INS_PERIOD_DAYS * 86400000){ periods++; iter = new Date(iter.getTime() + INS_PERIOD_DAYS * 86400000); }
+    if (periods === 0) continue;
+    var cost = round2(Number(p.monthly_sum) * periods);
+    var isLast = (calendarDaysBetween(new Date(p.started_at), now) >= Number(p.months) * 30);
+    if (Number(currentUser.balance) >= cost && !isLast){
+      await sb.from('users').update({ balance: round2(Number(currentUser.balance) - cost) }).eq('id', currentUser.id);
+      await sb.from('insurance_policies').update({ last_charged: iter.toISOString() }).eq('id', p.id);
+      await sb.from('history').insert({ user_id: currentUser.id, description: 'Оплата страховки «' + meta.name + '» за ' + periods + ' мес.', amount: -cost, kind: 'expense' });
+      currentUser.balance = round2(Number(currentUser.balance) - cost);
+      p.last_charged = iter.toISOString();
+    } else {
+      await sb.from('insurance_policies').update({ active: false }).eq('id', p.id);
+      await sb.from('history').insert({ user_id: currentUser.id, description: 'Страховка «' + meta.name + '» ' + (isLast ? 'завершена (истёк срок)' : 'прекращена — недостаточно средств'), amount: 0, kind: 'info' });
+      p.active = false;
+    }
+  }
+}
+
+async function refresh(){
+  if (!currentUser) return;
+  await accrueSavings();
+  await accrueCreditInterest();
+  await expireBonuses();
+  await processSubscriptions();
+  await processPolicies();
+
+  var r = await sb.from('users').select('*').eq('id', currentUser.id).single();
+  if (r.error) throw new Error('SELECT users(id): ' + r.error.message);
+  currentUser = r.data;
+
+  var sr = await sb.from('user_subscriptions').select('*').eq('user_id', currentUser.id).order('id', { ascending: false });
+  if (!sr.error) userSubs = sr.data || [];
+  var pr = await sb.from('insurance_policies').select('*').eq('user_id', currentUser.id).order('id', { ascending: false });
+  if (!pr.error) userPolicies = pr.data || [];
+  var cr = await sb.from('cards').select('*').eq('user_id', currentUser.id).order('id', { ascending: true });
+  if (!cr.error) userCards = cr.data || [];
+}
+
+async function addHistory(desc, amount, kind){
+  await sb.from('history').insert({ user_id: currentUser.id, description: desc, amount: amount, kind: kind });
+}
+
+function tomorrowAccrual(){
+  var s = Number(currentUser.savings) || 0;
+  if (s <= 0) return 0;
+  return round2(s * ANNUAL_RATE / DAYS_IN_YEAR);
+}
+function todayCreditInterest(){
+  var d = Number(currentUser.credit_debt) || 0;
+  if (d <= 0) return 0;
+  return round2(d * CREDIT_DAILY);
+}
+
+/* ============== ОТРИСОВКА ============== */
+function showMain(){
+  document.getElementById('authScreen').classList.add('hidden');
+  document.getElementById('mainScreen').classList.remove('hidden');
+  render();
+  startSubsAutoScroll();
+}
+function render(){
+  var u = currentUser; if (!u) return;
+  document.getElementById('balanceValue').innerHTML = fmt(u.balance) + ' <small>₽</small>';
+  document.getElementById('bonusValue').textContent = fmt(u.bonuses);
+  renderSubs();
+  renderGrid();
+}
+function renderSubs(){
+  var sc = document.getElementById('subsScroller');
+  var active = activeSubCodes();
+  var html = '';
+  for (var i = 0; i < SUBSCRIPTIONS.length; i++){
+    var s = SUBSCRIPTIONS[i];
+    var isAct = !!active[s.code];
+    html += '<div class="sub-card' + (isAct?' active':'') + '" onclick="openSubDetail(\'' + s.code + '\')">'
+          + '<div class="sub-card-top"><div class="sub-monogram" style="background:'+s.color+'">'+s.name.charAt(0)+'</div>'
+          + (isAct?'<div class="sub-badge">АКТИВНА</div>':'') + '</div>'
+          + '<div><div class="sub-card-name">'+s.name+'</div><div class="sub-card-short">'+s.short+'</div></div>'
+          + '<div class="sub-card-price">'+s.price+' ₽<small> / мес</small></div></div>';
+  }
+  sc.innerHTML = html;
+}
+function renderGrid(){
+  var u = currentUser;
+  var lim = Number(u.credit_limit) || 0;
+  var debt = Number(u.credit_debt) || 0;
+  var cardSub = lim > 0 ? ('Долг ' + fmt(debt) + ' ₽') : 'Не подключена';
+  var activeIns = 0;
+  for (var i=0;i<userPolicies.length;i++) if (userPolicies[i].active) activeIns++;
+  var cardsCount = userCards.length;
+
+  var tiles = [
+    { title:'Перевод',      sub:'1% комиссия',      action:'openTransferModal()' },
+    { title:'Себе',         sub:'Счёт ↔ копилка',   action:'openSelfTransferModal()' },
+    { title:'Накопительный',sub: fmt(u.savings)+' ₽', action:'openSavingsModal()' },
+    { title:'Кредитка',     sub: cardSub,           action:'openCreditModal()' },
+    { title:'Мои карты',    sub: cardsCount + ' шт.', action:'openCardsModal()' },
+    { title:'Страхование',  sub: activeIns > 0 ? activeIns + ' активных' : 'Маркетплейс', action:'openInsuranceModal()' },
+    { title:'Кешбэк',       sub: getCashbackCats().length + ' категорий', action:'openCashbackModal()' },
+    { title:'Лимиты',       sub:'Настройка',        action:'openLimitsModal()' },
+    { title:'История',      sub:'Операции',         action:'openHistoryModal()' },
+    { title:'Бонусы',       sub: fmt(u.bonuses)+' шт.', action:'openShopModal()' },
+    { title:'Настройки',    sub:'Профиль',          action:'openSettingsModal()' }
+  ];
+  if (isAdmin()) tiles.push({ title:'Админ', sub:'Управление', action:'openAdminModal()', admin:true });
+
+  var html = '';
+  for (var j = 0; j < tiles.length; j++){
+    var t = tiles[j];
+    html += '<div class="tile'+(t.admin?' admin':'')+'" onclick="'+t.action+'">'
+          + '<div class="tile-title">'+t.title+'</div><div class="tile-sub">'+t.sub+'</div></div>';
+  }
+  document.getElementById('grid').innerHTML = html;
+}
+
+/* ============== АВТОПРОКРУТКА ============== */
+function startSubsAutoScroll(){
+  stopSubsAutoScroll();
+  subsLastTime = 0;
+  subsAnimId = requestAnimationFrame(subsTick);
+  var sc = document.getElementById('subsScroller');
+  if (!sc) return;
+  sc.onmouseenter = function(){ subsPaused = true; };
+  sc.onmouseleave = function(){ subsPaused = false; };
+  sc.ontouchstart = function(){ subsPaused = true; };
+  sc.ontouchend = function(){ setTimeout(function(){ subsPaused = false; }, 2500); };
+}
+function stopSubsAutoScroll(){ if (subsAnimId){ cancelAnimationFrame(subsAnimId); subsAnimId = null; } }
+function subsTick(t){
+  if (!subsLastTime) subsLastTime = t;
+  var dt = t - subsLastTime; subsLastTime = t;
+  var el = document.getElementById('subsScroller');
+  if (el && !subsPaused){
+    var max = el.scrollWidth - el.clientWidth;
+    if (max > 0){
+      if (el.scrollLeft >= max - 1) el.scrollTo({left:0, behavior:'smooth'});
+      else el.scrollLeft += dt * 0.025;
+    }
+  }
+  subsAnimId = requestAnimationFrame(subsTick);
+}
+
+/* ============== МОДАЛКА ============== */
+function openModal(html){
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', function(e){ if (e.target.id === 'modal') closeModal(); });
+
+/* ============== ПОДПИСКИ ============== */
+function openSubDetail(code){
+  var s = subByCode(code); if (!s) return;
+  var active = null;
+  for (var i=0;i<userSubs.length;i++) if (userSubs[i].sub_code === code && userSubs[i].active) active = userSubs[i];
+
+  var bonusesForMonth = Math.ceil(s.price / BONUS_TO_RUB);
+  var cashback = round2(s.price * SUB_CASHBACK);
+  var actionsHtml;
+  if (active){
+    var endDate = new Date(active.last_charged);
+    endDate = new Date(endDate.getTime() + SUB_PERIOD_DAYS * 86400000);
+    actionsHtml = '<div class="row"><span class="k">Оформлена</span><span class="v">' + new Date(active.started_at).toLocaleDateString('ru-RU') + '</span></div>'
+                + '<div class="row"><span class="k">Следующее списание</span><span class="v">' + endDate.toLocaleDateString('ru-RU') + '</span></div>'
+                + '<button class="btn btn-ghost mt16" onclick="cancelSub(\'' + s.code + '\')">Отменить подписку</button>';
+  } else {
+    actionsHtml = '<div class="row"><span class="k">Кешбэк бонусами</span><span class="v" style="color:var(--income)">+' + fmt(cashback) + ' бонусов</span></div>'
+                + '<button class="btn mt16" onclick="buySub(\'' + s.code + '\')">Оформить за ' + s.price + ' ₽ / мес</button>'
+                + '<button class="btn btn-ghost mt8" onclick="buySubBonus(\'' + s.code + '\')">Оформить за ' + bonusesForMonth + ' бонусов / мес</button>';
+  }
+  openModal(
+    '<div class="detail-header"><div class="product-icon" style="background:'+s.color+'">'+s.name.charAt(0)+'</div>'
+    + '<div><h2>'+s.name+'</h2><div class="sub" style="margin:0">'+s.price+' ₽ в месяц · '+s.short+'</div></div></div>'
+    + '<div class="detail-body">'+s.desc+'</div>'
+    + actionsHtml
+  );
+}
+
+async function buySub(code){
+  var s = subByCode(code); if (!s) return;
+  if (Number(currentUser.balance) < s.price) return alert('Недостаточно средств. Нужно ' + s.price + ' ₽.');
+  try {
+    var nowIso = new Date().toISOString();
+    var cashback = round2(s.price * SUB_CASHBACK);
+    await sb.from('users').update({
+      balance: round2(Number(currentUser.balance) - s.price),
+      bonuses: round2(Number(currentUser.bonuses) + cashback),
+      bonuses_updated_at: nowIso
+    }).eq('id', currentUser.id);
+    await sb.from('user_subscriptions').insert({ user_id: currentUser.id, sub_code: code, started_at: nowIso, last_charged: nowIso, active: true });
+    await addHistory('Оформление подписки «' + s.name + '» (первый месяц)', -s.price, 'expense');
+    await addHistory('Кешбэк 7% за подписку «' + s.name + '» (+' + fmt(cashback) + ' бонусов)', 0, 'info');
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+async function buySubBonus(code){
+  var s = subByCode(code); if (!s) return;
+  var bonuses = Math.ceil(s.price / BONUS_TO_RUB);
+  if (Number(currentUser.bonuses) < bonuses) return alert('Недостаточно бонусов. Нужно ' + bonuses + '.');
+  try {
+    var nowIso = new Date().toISOString();
+    await sb.from('users').update({ bonuses: round2(Number(currentUser.bonuses) - bonuses), bonuses_updated_at: nowIso }).eq('id', currentUser.id);
+    await sb.from('user_subscriptions').insert({ user_id: currentUser.id, sub_code: code, started_at: nowIso, last_charged: nowIso, active: true });
+    await addHistory('Оформление подписки «' + s.name + '» за ' + bonuses + ' бонусов', 0, 'info');
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+async function cancelSub(code){
+  var s = subByCode(code); if (!s) return;
+  if (!confirm('Отменить подписку «' + s.name + '»? Полученные бонусы будут списаны.')) return;
+  try {
+    var histRes = await sb.from('history').select('*').eq('user_id', currentUser.id).like('description','%Кешбэк 7% за подписку «'+s.name+'»%');
+    var totalBonusBack = 0;
+    if (!histRes.error && histRes.data){
+      for (var i=0;i<histRes.data.length;i++){
+        var m = histRes.data[i].description.match(/\+([\d.,]+) бонус/);
+        if (m) totalBonusBack += parseFloat(m[1].replace(',','.'));
+      }
+    }
+    var nowBonuses = Number(currentUser.bonuses) || 0;
+    var deduct = Math.min(totalBonusBack, nowBonuses);
+
+    await sb.from('users').update({ bonuses: round2(nowBonuses - deduct), bonuses_updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+
+    for (var j=0;j<userSubs.length;j++){
+      if (userSubs[j].sub_code === code && userSubs[j].active){
+        await sb.from('user_subscriptions').update({ active: false }).eq('id', userSubs[j].id);
+      }
+    }
+    if (deduct > 0){
+      await addHistory('Отмена подписки «' + s.name + '», списано ' + fmt(deduct) + ' бонусов', 0, 'info');
+    } else {
+      await addHistory('Отмена подписки «' + s.name + '»', 0, 'info');
+    }
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== НАКОПИТЕЛЬНЫЙ ============== */
+function openSavingsModal(){
+  var u = currentUser;
+  var t = tomorrowAccrual();
+  openModal(
+    '<h2>Накопления</h2>'
+    + '<div class="sub">Ставка 7% годовых. Проценты поступают на основной счёт.</div>'
+    + '<div class="center-amount"><div class="label">Сумма накоплений</div>'
+    +   '<div class="num">'+fmt(u.savings)+' <small>₽</small></div>'
+    +   '<div class="hint">Завтра на счёт +'+fmt(t)+' ₽</div></div>'
+    + '<div class="section-title">Операции</div>'
+    + '<div class="field"><label>Сумма</label><input id="savAmt" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<div class="flex-gap">'
+    +   '<button class="btn" onclick="savingsOp(\'in\')">Пополнить</button>'
+    +   '<button class="btn btn-ghost" onclick="savingsOp(\'out\')">Снять</button></div>'
+    + '<div class="section-title">Информация</div>'
+    + '<div class="row"><span class="k">Ставка</span><span class="v">7% годовых</span></div>'
+    + '<div class="row"><span class="k">Дневная ставка</span><span class="v">'+(ANNUAL_RATE/DAYS_IN_YEAR*100).toFixed(5)+'%</span></div>'
+    + '<div class="row"><span class="k">Куда идут проценты</span><span class="v">На основной счёт</span></div>'
+    + '<div class="row"><span class="k">Последнее начисление</span><span class="v">'+(u.last_savings_accrual?new Date(u.last_savings_accrual).toLocaleDateString('ru-RU'):'—')+'</span></div>'
+  );
+}
+async function savingsOp(action){
+  var amt = parseFloat(document.getElementById('savAmt').value);
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  try {
+    await accrueSavings();
+    var fresh = await sb.from('users').select('*').eq('id', currentUser.id).single();
+    if (!fresh.error) currentUser = fresh.data;
+    if (action === 'in'){
+      if (Number(currentUser.balance) < amt) return alert('Недостаточно средств на счету');
+      await sb.from('users').update({ balance: round2(Number(currentUser.balance)-amt), savings: round2(Number(currentUser.savings)+amt) }).eq('id', currentUser.id);
+      await addHistory('Пополнение накоплений', -amt, 'expense');
+    } else {
+      if (amt > Number(currentUser.savings)) return alert('Недостаточно средств на накоплениях');
+      await sb.from('users').update({ balance: round2(Number(currentUser.balance)+amt), savings: round2(Number(currentUser.savings)-amt) }).eq('id', currentUser.id);
+      await addHistory('Снятие с накоплений', amt, 'income');
+    }
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openSavingsModal(); });
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== ПЕРЕВОД ============== */
+function openTransferModal(){
+  openModal(
+    '<h2>Перевод</h2><div class="sub">Комиссия 1%. Источник — основной счёт.</div>'
+    + '<div class="field"><label>Имя получателя</label><input id="trName" type="text" placeholder="Имя пользователя TFB"></div>'
+    + '<div class="field"><label>Сумма</label><input id="trAmount" type="number" min="0" step="0.01" placeholder="0.00" oninput="updateTransferPreview()"></div>'
+    + '<div class="field"><label>Описание (необязательно)</label><input id="trDesc" type="text" maxlength="120" placeholder="Например: за обед"></div>'
+    + '<div id="trPreview"></div>'
+    + '<button class="btn mt16" onclick="confirmTransfer()">Перевести</button>'
+  );
+}
+function updateTransferPreview(){
+  var amt = parseFloat(document.getElementById('trAmount').value) || 0;
+  var fee = round2(amt * 0.01);
+  var total = round2(amt + fee);
+  var el = document.getElementById('trPreview');
+  if (amt <= 0){ el.innerHTML = ''; return; }
+  el.innerHTML = '<div style="background:var(--card);border-radius:12px;padding:14px;border:1px solid var(--border)">'
+    + '<div class="row"><span class="k">Сумма перевода</span><span class="v">'+fmt(amt)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Комиссия 1%</span><span class="v">'+fmt(fee)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Итого</span><span class="v">'+fmt(total)+' ₽</span></div></div>';
+}
+async function confirmTransfer(){
+  var name = document.getElementById('trName').value.trim();
+  var amt = parseFloat(document.getElementById('trAmount').value);
+  var desc = (document.getElementById('trDesc').value || '').trim();
+  if (!name) return alert('Введите имя получателя');
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  if (name === currentUser.name) return alert('Нельзя перевести себе — используйте «Себе»');
+  var lim = Number(currentUser.limit_transfer) || 0;
+  if (lim > 0 && amt > lim) return alert('Превышен лимит на перевод: ' + fmt(lim) + ' ₽');
+  try {
+    var r = await sb.from('users').select('*').eq('name', name).limit(1);
+    if (r.error) throw new Error(r.error.message);
+    var target = (r.data && r.data[0]) || null;
+    if (!target) return alert('Получатель не найден');
+    var fee = round2(amt * 0.01);
+    var total = round2(amt + fee);
+    if (total > Number(currentUser.balance)) return alert('Недостаточно средств (с учётом комиссии)');
+    await sb.from('users').update({ balance: round2(Number(currentUser.balance) - total) }).eq('id', currentUser.id);
+    await sb.from('users').update({ balance: round2(Number(target.balance) + amt) }).eq('id', target.id);
+    var suffix = desc ? ' · «' + desc + '»' : '';
+    await addHistory('Перевод для ' + name + ' (комиссия ' + fmt(fee) + ' ₽)' + suffix, -total, 'expense');
+    await sb.from('history').insert({ user_id: target.id, description: 'Перевод от ' + currentUser.name + suffix, amount: amt, kind: 'income' });
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== ПЕРЕВОД СЕБЕ ============== */
+function openSelfTransferModal(){
+  openModal(
+    '<h2>Перевод себе</h2><div class="sub">Между основным счётом и накоплениями</div>'
+    + '<div class="field"><label>Направление</label>'
+    + '<select id="selfDir">'
+    +   '<option value="to_sav">Со счёта → на накопления</option>'
+    +   '<option value="from_sav">С накоплений → на счёт</option>'
+    + '</select></div>'
+    + '<div class="field"><label>Сумма</label><input id="selfAmt" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<div class="field"><label>Описание</label><input id="selfDesc" type="text" maxlength="120" placeholder="Например: отложить на отпуск"></div>'
+    + '<div class="row"><span class="k">Счёт</span><span class="v">'+fmt(currentUser.balance)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Накопления</span><span class="v">'+fmt(currentUser.savings)+' ₽</span></div>'
+    + '<button class="btn mt16" onclick="confirmSelfTransfer()">Перевести</button>'
+  );
+}
+async function confirmSelfTransfer(){
+  var dir = document.getElementById('selfDir').value;
+  var amt = parseFloat(document.getElementById('selfAmt').value);
+  var desc = (document.getElementById('selfDesc').value || '').trim();
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  try {
+    await accrueSavings();
+    var fresh = await sb.from('users').select('*').eq('id', currentUser.id).single();
+    if (!fresh.error) currentUser = fresh.data;
+    var b = Number(currentUser.balance) || 0;
+    var s = Number(currentUser.savings) || 0;
+    if (dir === 'to_sav'){
+      if (amt > b) return alert('Недостаточно средств на счёте');
+      await sb.from('users').update({ balance: round2(b - amt), savings: round2(s + amt) }).eq('id', currentUser.id);
+      await addHistory('Перевод на накопления' + (desc ? ' · «' + desc + '»' : ''), -amt, 'expense');
+    } else {
+      if (amt > s) return alert('Недостаточно средств на накоплениях');
+      await sb.from('users').update({ balance: round2(b + amt), savings: round2(s - amt) }).eq('id', currentUser.id);
+      await addHistory('Перевод с накоплений' + (desc ? ' · «' + desc + '»' : ''), amt, 'income');
+    }
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== КРЕДИТНАЯ КАРТА ============== */
+function openCreditModal(){
+  var u = currentUser;
+  var lim = Number(u.credit_limit) || 0;
+  var debt = Number(u.credit_debt) || 0;
+  var avail = Math.max(0, lim - debt);
+  var daily = todayCreditInterest();
+  var banner = u.card_frozen ? '<div style="background:var(--expense);color:#fff;font-size:12.5px;font-weight:700;padding:10px 14px;border-radius:12px;margin-bottom:14px;text-align:center">Карта заморожена</div>' : '';
+  var opsHtml;
+  if (lim > 0){
+    opsHtml = '<div class="section-title">Операции</div>'
+      + '<div class="field"><label>Сумма</label><input id="ccAmt" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+      + '<div class="flex-gap">'
+      +   '<button class="btn" onclick="creditSpend()"' + (u.card_frozen?' disabled':'') + '>Снять</button>'
+      +   '<button class="btn btn-ghost" onclick="creditRepay()">Погасить со счёта</button></div>'
+      + '<div class="section-title">Безопасность</div>'
+      + '<button class="btn btn-ghost" onclick="toggleFreeze()">' + (u.card_frozen?'Разморозить':'Заморозить') + ' карту</button>';
+  } else {
+    opsHtml = '<div class="empty">Карта не подключена. Обратитесь к администратору.</div>';
+  }
+  openModal(
+    '<h2>Кредитная карта</h2>'
+    + '<div class="sub">75% годовых на задолженность. Погашение — только со счёта.</div>'
+    + banner
+    + '<div class="center-amount"><div class="label">Задолженность</div>'
+    +   '<div class="num">'+fmt(debt)+' <small>₽</small></div>'
+    +   (debt>0?'<div class="hint" style="color:var(--expense)">Сегодня +'+fmt(daily)+' ₽</div>':'')
+    + '</div>'
+    + '<div class="row"><span class="k">Лимит</span><span class="v">'+fmt(lim)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Доступно</span><span class="v">'+fmt(avail)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Ставка</span><span class="v">75% годовых</span></div>'
+    + '<div class="row"><span class="k">Статус</span><span class="v">'+(u.card_frozen?'Заморожена':'Активна')+'</span></div>'
+    + '<div class="row"><span class="k">Счёт для погашения</span><span class="v">'+fmt(u.balance)+' ₽</span></div>'
+    + opsHtml
+  );
+}
+async function creditSpend(){
+  var amt = parseFloat(document.getElementById('ccAmt').value);
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  if (currentUser.card_frozen) return alert('Карта заморожена');
+  var lim = Number(currentUser.credit_limit) || 0;
+  var debt = Number(currentUser.credit_debt) || 0;
+  if (amt > lim - debt) return alert('Превышает доступный лимит');
+  var lim2 = Number(currentUser.limit_withdraw) || 0;
+  if (lim2 > 0 && amt > lim2) return alert('Превышен лимит на снятие: ' + fmt(lim2) + ' ₽');
+  try {
+    var iso = new Date().toISOString();
+    await sb.from('users').update({
+      credit_debt: round2(debt + amt),
+      balance: round2(Number(currentUser.balance) + amt),
+      last_credit_accrual: iso
+    }).eq('id', currentUser.id);
+    currentUser.last_credit_accrual = iso;
+    await addHistory('Снятие с кредитной карты', amt, 'income');
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openCreditModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function creditRepay(){
+  var amt = parseFloat(document.getElementById('ccAmt').value);
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  var debt = Number(currentUser.credit_debt) || 0;
+  if (amt > debt) return alert('Сумма больше задолженности');
+  if (amt > Number(currentUser.balance)) return alert('Недостаточно средств на счёте');
+  try {
+    var iso = new Date().toISOString();
+    await sb.from('users').update({
+      credit_debt: round2(debt - amt),
+      balance: round2(Number(currentUser.balance) - amt),
+      last_credit_accrual: iso
+    }).eq('id', currentUser.id);
+    currentUser.last_credit_accrual = iso;
+    await addHistory('Погашение кредитной карты со счёта', -amt, 'expense');
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openCreditModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function toggleFreeze(){
+  try {
+    await sb.from('users').update({ card_frozen: !currentUser.card_frozen }).eq('id', currentUser.id);
+    currentUser.card_frozen = !currentUser.card_frozen;
+    await addHistory(currentUser.card_frozen?'Кредитная карта заморожена':'Кредитная карта разморожена', 0, 'info');
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openCreditModal(); });
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== МОИ КАРТЫ ============== */
+function openCardsModal(){
+  var html = '<h2>Мои карты</h2><div class="sub">Дебетовые карты TFB</div>';
+  if (userCards.length === 0){
+    html += '<div class="empty">Нет выпущенных карт</div>';
+  } else {
+    for (var i = 0; i < userCards.length; i++){
+      var c = userCards[i];
+      html += '<div class="card-visual' + (c.is_blocked?' blocked':'') + '" onclick="openCardDetail('+c.id+')">'
+            + '<div class="card-brand">TFB</div>'
+            + '<div style="font-size:12px;opacity:.85">'+ (c.is_blocked?'ЗАБЛОКИРОВАНА':'ДЕБЕТОВАЯ') +'</div>'
+            + '<div class="card-number">'+c.card_number+'</div>'
+            + '<div class="card-holder">' + currentUser.name + '</div>'
+            + '</div>';
+    }
+  }
+  html += '<button class="btn mt16" onclick="issueCard()">Выпустить новую карту</button>';
+  openModal(html);
+}
+
+async function issueCard(){
+  if (userCards.length >= 5) return alert('Максимум 5 карт');
+  try {
+    var number = randomCardNumber();
+    await sb.from('cards').insert({ user_id: currentUser.id, card_number: number, card_type: 'debit' });
+    await addHistory('Выпущена новая дебетовая карта **** ' + number.slice(-4), 0, 'info');
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openCardsModal(); });
+  } catch(e){ alert(e.message); }
+}
+
+function openCardDetail(id){
+  var c = null;
+  for (var i = 0; i < userCards.length; i++) if (userCards[i].id === id) c = userCards[i];
+  if (!c) return;
+  openModal(
+    '<div class="card-visual' + (c.is_blocked?' blocked':'') + '">'
+    + '<div class="card-brand">TFB</div>'
+    + '<div style="font-size:12px;opacity:.85">'+(c.is_blocked?'ЗАБЛОКИРОВАНА':'ДЕБЕТОВАЯ')+'</div>'
+    + '<div class="card-number">'+c.card_number+'</div>'
+    + '<div class="card-holder">'+currentUser.name+'</div></div>'
+    + '<div class="row"><span class="k">Номер</span><span class="v">'+c.card_number+'</span></div>'
+    + '<div class="row"><span class="k">Тип</span><span class="v">Дебетовая</span></div>'
+    + '<div class="row"><span class="k">Статус</span><span class="v">'+(c.is_blocked?'Заблокирована':'Активна')+'</span></div>'
+    + '<button class="btn mt16" onclick="toggleCardBlock('+c.id+')">' + (c.is_blocked?'Разблокировать':'Заблокировать') + '</button>'
+    + '<button class="btn btn-danger mt8" onclick="closeCard('+c.id+')">Закрыть карту</button>'
+  );
+}
+async function toggleCardBlock(id){
+  try {
+    var c = null;
+    for (var i = 0; i < userCards.length; i++) if (userCards[i].id === id) c = userCards[i];
+    if (!c) return;
+    await sb.from('cards').update({ is_blocked: !c.is_blocked }).eq('id', id);
+    await addHistory((c.is_blocked?'Разблокирована':'Заблокирована') + ' карта **** ' + c.card_number.slice(-4), 0, 'info');
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openCardsModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function closeCard(id){
+  if (!confirm('Закрыть карту навсегда?')) return;
+  try {
+    var c = null;
+    for (var i = 0; i < userCards.length; i++) if (userCards[i].id === id) c = userCards[i];
+    await sb.from('cards').delete().eq('id', id);
+    if (c) await addHistory('Закрыта карта **** ' + c.card_number.slice(-4), 0, 'info');
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openCardsModal(); });
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== СТРАХОВАНИЕ ============== */
+function openInsuranceModal(){
+  var html = '<h2>Страхование</h2><div class="sub">Маркетплейс TFB · 15 продуктов</div>';
+  var active = activeInsCodes();
+  for (var i = 0; i < INSURANCE.length; i++){
+    var p = INSURANCE[i];
+    var isAct = !!active[p.code];
+    html += '<div class="product-card" onclick="openInsuranceDetail(\'' + p.code + '\')">'
+          + '<div class="product-icon" style="background:'+p.color+'">'+p.icon+'</div>'
+          + '<div class="product-body">'
+          +   '<div class="product-name">'+p.name+(isAct?' · <span style="color:var(--income);font-size:11px">АКТИВНА</span>':'')+'</div>'
+          +   '<div class="product-short">'+p.short+'</div>'
+          + '</div></div>';
+  }
+  html += '<div class="sub mt16" style="text-align:center;font-size:11px">Условия вымышленные, для демонстрации. Страховая выплата = 5× от месячной суммы.</div>';
+  openModal(html);
+}
+
+function openInsuranceDetail(code){
+  var p = insByCode(code); if (!p) return;
+  var active = null;
+  for (var i = 0; i < userPolicies.length; i++) if (userPolicies[i].insurance_code === code && userPolicies[i].active) active = userPolicies[i];
+
+  var actionsHtml;
+  if (active){
+    var endDate = new Date(active.started_at);
+    endDate.setMonth(endDate.getMonth() + active.months);
+    actionsHtml = '<div class="row"><span class="k">Сумма в месяц</span><span class="v">'+fmt(active.monthly_sum)+' ₽</span></div>'
+                + '<div class="row"><span class="k">Срок</span><span class="v">'+active.months+' мес.</span></div>'
+                + '<div class="row"><span class="k">Выплата при случае</span><span class="v">'+fmt(active.monthly_sum*5)+' ₽</span></div>'
+                + '<div class="row"><span class="k">Оформлена</span><span class="v">'+new Date(active.started_at).toLocaleDateString('ru-RU')+'</span></div>'
+                + '<div class="row"><span class="k">Действует до</span><span class="v">'+endDate.toLocaleDateString('ru-RU')+'</span></div>'
+                + '<button class="btn btn-danger mt16" onclick="cancelInsurance('+active.id+',\''+p.code+'\')">Отменить страховку</button>';
+  } else {
+    actionsHtml = '<button class="btn mt16" onclick="openInsuranceForm(\'' + p.code + '\')">Оформить</button>';
+  }
+
+  openModal(
+    '<div class="detail-header"><div class="product-icon" style="background:'+p.color+';width:60px;height:60px;border-radius:20px;font-size:26px">'+p.icon+'</div>'
+    + '<div><h2>'+p.name+'</h2></div></div>'
+    + '<div class="detail-body">'+p.desc+'</div>'
+    + actionsHtml
+  );
+}
+
+function openInsuranceForm(code){
+  var p = insByCode(code); if (!p) return;
+  insuranceDraft = { code: code, monthlySum: 500, months: 6 };
+  renderInsuranceForm();
+}
+
+function renderInsuranceForm(){
+  var p = insByCode(insuranceDraft.code); if (!p) return;
+  var totalCost = insuranceDraft.monthlySum * insuranceDraft.months;
+  var payout = insuranceDraft.monthlySum * 5;
+  openModal(
+    '<div class="detail-header"><div class="product-icon" style="background:'+p.color+'">'+p.icon+'</div>'
+    + '<div><h2>Оформление</h2><div class="sub" style="margin:0">'+p.name+'</div></div></div>'
+
+    + '<div class="section-title">Сумма в месяц</div>'
+    + '<div style="display:flex;align-items:baseline;justify-content:center;margin:8px 0 12px">'
+    +   '<div style="font-size:32px;font-weight:800">'+fmtInt(insuranceDraft.monthlySum)+'</div>'
+    +   '<div style="font-size:20px;font-weight:700;color:var(--muted);margin-left:4px">₽</div>'
+    + '</div>'
+    + '<input type="range" min="1" max="1000000" step="1" value="'+insuranceDraft.monthlySum+'" oninput="setInsSum(this.value)">'
+    + '<div class="field" style="margin-top:12px"><label>Ввести точную сумму</label>'
+    +   '<input id="insSumInput" type="number" min="1" max="1000000" step="1" value="'+insuranceDraft.monthlySum+'" oninput="setInsSumInput(this.value)">'
+    + '</div>'
+    + '<div class="row"><span class="k">Мин</span><span class="v">1 ₽</span></div>'
+    + '<div class="row"><span class="k">Макс</span><span class="v">1 000 000 ₽</span></div>'
+
+    + '<div class="section-title">Срок</div>'
+    + '<div style="display:flex;align-items:baseline;justify-content:center;margin:8px 0 12px">'
+    +   '<div style="font-size:32px;font-weight:800">'+insuranceDraft.months+'</div>'
+    +   '<div style="font-size:20px;font-weight:700;color:var(--muted);margin-left:4px">мес.</div>'
+    + '</div>'
+    + '<input type="range" min="1" max="24" step="1" value="'+insuranceDraft.months+'" oninput="setInsMonths(this.value)">'
+    + '<div class="field" style="margin-top:12px"><label>Ввести точный срок</label>'
+    +   '<input id="insMonthsInput" type="number" min="1" max="24" step="1" value="'+insuranceDraft.months+'" oninput="setInsMonthsInput(this.value)">'
+    + '</div>'
+    + '<div class="row"><span class="k">Мин</span><span class="v">1 мес.</span></div>'
+    + '<div class="row"><span class="k">Макс</span><span class="v">24 мес.</span></div>'
+
+    + '<div class="section-title">Итого</div>'
+    + '<div class="row"><span class="k">Ежемесячный платёж</span><span class="v">'+fmt(insuranceDraft.monthlySum)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Всего за срок</span><span class="v">'+fmt(totalCost)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Выплата при страховом случае</span><span class="v" style="color:var(--income)">'+fmt(payout)+' ₽</span></div>'
+    + '<div class="row"><span class="k">Кешбэк бонусами 7%</span><span class="v" style="color:var(--income)">+'+fmt(totalCost*INS_CASHBACK)+' бонусов</span></div>'
+
+    + '<button class="btn mt16" onclick="confirmInsurance()">Оформить за '+fmt(insuranceDraft.monthlySum)+' ₽/мес</button>'
+  );
+}
+function setInsSum(v){
+  var n = parseInt(v);
+  if (isNaN(n)) return;
+  if (n < 1) n = 1;
+  if (n > 1000000) n = 1000000;
+  insuranceDraft.monthlySum = n;
+  renderInsuranceForm();
+}
+function setInsMonths(v){
+  var n = parseInt(v);
+  if (isNaN(n)) return;
+  if (n < 1) n = 1;
+  if (n > 24) n = 24;
+  insuranceDraft.months = n;
+  renderInsuranceForm();
+}
+function setInsSumInput(v){
+  var n = parseInt(v);
+  if (isNaN(n)) return;
+  if (n < 1) n = 1;
+  if (n > 1000000) n = 1000000;
+  insuranceDraft.monthlySum = n;
+  renderInsuranceForm();
+  var el = document.getElementById('insSumInput');
+  if (el){
+    el.focus();
+    try { el.setSelectionRange(el.value.length, el.value.length); } catch(e){}
+  }
+}
+function setInsMonthsInput(v){
+  var n = parseInt(v);
+  if (isNaN(n)) return;
+  if (n < 1) n = 1;
+  if (n > 24) n = 24;
+  insuranceDraft.months = n;
+  renderInsuranceForm();
+  var el = document.getElementById('insMonthsInput');
+  if (el){
+    el.focus();
+    try { el.setSelectionRange(el.value.length, el.value.length); } catch(e){}
+  }
+}
+
+async function confirmInsurance(){
+  var p = insByCode(insuranceDraft.code); if (!p) return;
+  var cost = round2(insuranceDraft.monthlySum);
+  if (Number(currentUser.balance) < cost) return alert('Недостаточно средств. Нужно ' + fmt(cost) + ' ₽ за первый месяц.');
+  try {
+    var nowIso = new Date().toISOString();
+    var cashback = round2(insuranceDraft.monthlySum * insuranceDraft.months * INS_CASHBACK);
+    await sb.from('users').update({
+      balance: round2(Number(currentUser.balance) - cost),
+      bonuses: round2(Number(currentUser.bonuses) + cashback),
+      bonuses_updated_at: nowIso
+    }).eq('id', currentUser.id);
+    await sb.from('insurance_policies').insert({
+      user_id: currentUser.id,
+      insurance_code: insuranceDraft.code,
+      monthly_sum: insuranceDraft.monthlySum,
+      months: insuranceDraft.months,
+      started_at: nowIso, last_charged: nowIso, active: true
+    });
+    await addHistory('Оформлена страховка «' + p.name + '» (' + fmt(insuranceDraft.monthlySum) + ' ₽/мес на ' + insuranceDraft.months + ' мес.)', -cost, 'expense');
+    await addHistory('Кешбэк 7% за страховку «' + p.name + '» (+' + fmt(cashback) + ' бонусов)', 0, 'info');
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+async function cancelInsurance(id, code){
+  var p = insByCode(code);
+  if (!p) return;
+  if (!confirm('Отменить страховку «' + p.name + '»? Полученные бонусы будут списаны.')) return;
+  try {
+    var histRes = await sb.from('history').select('*').eq('user_id', currentUser.id).like('description','%Кешбэк 7% за страховку «'+p.name+'»%');
+    var totalBonusBack = 0;
+    if (!histRes.error && histRes.data){
+      for (var i=0;i<histRes.data.length;i++){
+        var m = histRes.data[i].description.match(/\+([\d.,]+) бонус/);
+        if (m) totalBonusBack += parseFloat(m[1].replace(',','.'));
+      }
+    }
+    var nowBonuses = Number(currentUser.bonuses) || 0;
+    var deduct = Math.min(totalBonusBack, nowBonuses);
+    await sb.from('users').update({ bonuses: round2(nowBonuses - deduct), bonuses_updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+    await sb.from('insurance_policies').update({ active: false }).eq('id', id);
+    if (deduct > 0) await addHistory('Отмена страховки «' + p.name + '», списано ' + fmt(deduct) + ' бонусов', 0, 'info');
+    else await addHistory('Отмена страховки «' + p.name + '»', 0, 'info');
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== КЕШБЭК ============== */
+function openCashbackModal(){
+  cbDraft = getCashbackCats().slice();
+  renderCashbackModal();
+}
+function renderCashbackModal(){
+  var html = '<h2>Кешбэк</h2><div class="sub">Выберите до 3 категорий · ставка до 15%</div>';
+  html += '<div class="section-title">Категории</div>';
+  for (var i = 0; i < CB_CATEGORIES.length; i++){
+    var c = CB_CATEGORIES[i];
+    var sel = cbDraft.indexOf(c) !== -1;
+    html += '<div class="cat-chip'+(sel?' selected':'')+'" onclick="toggleCbCat(\'' + c.replace(/'/g,"\\'") + '\')">'+c+'</div>';
+  }
+  html += '<div class="section-title">Ваш кешбэк</div>';
+  if (cbDraft.length === 0){
+    html += '<div class="empty">Категории не выбраны</div>';
+  } else {
+    for (var j = 0; j < cbDraft.length; j++){
+      html += '<div class="row"><span class="k">'+cbDraft[j]+'</span><span class="v" style="color:var(--income)">до 15%</span></div>';
+    }
+  }
+  html += '<button class="btn mt16" onclick="saveCashback()">Сохранить</button>';
+  openModal(html);
+}
+function toggleCbCat(c){
+  var i = cbDraft.indexOf(c);
+  if (i >= 0) cbDraft.splice(i,1);
+  else {
+    if (cbDraft.length >= 3) return alert('Максимум 3 категории');
+    cbDraft.push(c);
+  }
+  renderCashbackModal();
+}
+async function saveCashback(){
+  try {
+    await sb.from('users').update({ cashback_categories: JSON.stringify(cbDraft) }).eq('id', currentUser.id);
+    currentUser.cashback_categories = JSON.stringify(cbDraft);
+    render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== ЛИМИТЫ ============== */
+function openLimitsModal(){
+  var u = currentUser;
+  openModal(
+    '<h2>Лимиты</h2><div class="sub">0 = без ограничений</div>'
+    + '<div class="field"><label>Снятие наличных, ₽/день</label><input id="lim1" type="number" min="0" step="100" value="'+(u.limit_withdraw||0)+'"></div>'
+    + '<div class="field"><label>Переводы, ₽/день</label><input id="lim2" type="number" min="0" step="100" value="'+(u.limit_transfer||0)+'"></div>'
+    + '<div class="field"><label>Оплата в интернете, ₽/день</label><input id="lim3" type="number" min="0" step="100" value="'+(u.limit_online||0)+'"></div>'
+    + '<div class="field"><label>Операции за рубежом, ₽/день</label><input id="lim4" type="number" min="0" step="100" value="'+(u.limit_abroad||0)+'"></div>'
+    + '<button class="btn" onclick="saveLimits()">Сохранить лимиты</button>'
+  );
+}
+async function saveLimits(){
+  try {
+    var l1 = parseFloat(document.getElementById('lim1').value) || 0;
+    var l2 = parseFloat(document.getElementById('lim2').value) || 0;
+    var l3 = parseFloat(document.getElementById('lim3').value) || 0;
+    var l4 = parseFloat(document.getElementById('lim4').value) || 0;
+    await sb.from('users').update({
+      limit_withdraw: l1, limit_transfer: l2, limit_online: l3, limit_abroad: l4
+    }).eq('id', currentUser.id);
+    await addHistory('Обновлены лимиты: снятие '+fmt(l1)+', перевод '+fmt(l2)+', онлайн '+fmt(l3)+', за рубежом '+fmt(l4), 0, 'info');
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== ИСТОРИЯ ============== */
+async function openHistoryModal(){
+  openModal('<h2>История операций</h2><div class="loading">Загрузка...</div>');
+  try {
+    var r = await sb.from('history').select('*').eq('user_id', currentUser.id).order('id', { ascending: false }).limit(200);
+    if (r.error) throw new Error(r.error.message);
+    historyList = r.data || [];
+    var html = '<h2>История операций</h2><div class="sub">Пополнения и списания</div>';
+    if (historyList.length === 0){ html += '<div class="empty">Операций пока нет</div>'; }
+    else {
+      for (var i = 0; i < historyList.length; i++){
+        var h = historyList[i];
+        var cls = h.kind === 'income' ? 'plus' : h.kind === 'expense' ? 'minus' : '';
+        var sign = h.kind === 'income' ? '+' : h.kind === 'expense' ? '−' : '';
+        var amtText = Number(h.amount) === 0 ? '—' : sign + fmt(Math.abs(h.amount)) + ' ₽';
+        var date = new Date(h.created_at);
+        var dateStr = isNaN(date) ? h.created_at : date.toLocaleString('ru-RU');
+        html += '<div class="hist-item"><div class="hist-left">'
+              + '<div class="hist-desc">'+h.description+'</div>'
+              + '<div class="hist-date">'+dateStr+'</div></div>'
+              + '<div class="hist-amount '+cls+'">'+amtText+'</div></div>';
+      }
+    }
+    openModal(html);
+  } catch(e){ openModal('<h2>История</h2><div class="empty">' + e.message + '</div>'); }
+}
+
+/* ============== МАГАЗИН БОНУСОВ ============== */
+function openShopModal(){
+  var u = currentUser;
+  var bonuses = Number(u.bonuses) || 0;
+  var rublesForAll = round2(bonuses * BONUS_TO_RUB);
+  var subItems = '';
+  for (var i = 0; i < SUBSCRIPTIONS.length; i++){
+    var s = SUBSCRIPTIONS[i];
+    var b = Math.ceil(s.price / BONUS_TO_RUB);
+    subItems += '<div class="shop-item"><div class="shop-item-head"><div class="shop-item-title">'+s.name+'</div><div class="shop-item-price">'+b+' бонусов</div></div>'
+      + '<div class="shop-item-desc">30 дней подписки «'+s.name+'» за бонусы.</div>'
+      + '<button class="btn" onclick="buySubBonus(\''+s.code+'\')">Оформить за бонусы</button></div>';
+  }
+  openModal(
+    '<h2>Магазин бонусов</h2>'
+    + '<div class="sub">У вас '+fmt(bonuses)+' бонусов. Курс: 1 бонус = '+BONUS_TO_RUB+' ₽.</div>'
+    + '<div class="shop-item"><div class="shop-item-head"><div class="shop-item-title">Пополнение накоплений</div>'
+    + '<div class="shop-item-price">'+fmt(bonuses)+' → '+fmt(rublesForAll)+' ₽</div></div>'
+    + '<div class="shop-item-desc">Обменять все бонусы на пополнение накопительного счёта.</div>'
+    + '<button class="btn" onclick="shopExchangeAll()">Обменять все бонусы</button></div>'
+    + '<div class="shop-item"><div class="shop-item-head"><div class="shop-item-title">Часть бонусов</div></div>'
+    + '<div class="shop-item-desc">Введите количество бонусов для обмена.</div>'
+    + '<div class="field"><label>Количество</label><input id="shopBonusAmt" type="number" min="1" step="1" placeholder="0"></div>'
+    + '<button class="btn" onclick="shopExchangeCustom()">Обменять</button></div>'
+    + '<div class="section-title">Подписки за бонусы</div>'
+    + subItems
+  );
+}
+async function shopExchangeAll(){
+  var bonuses = Number(currentUser.bonuses) || 0;
+  if (bonuses <= 0) return alert('Нет бонусов');
+  var rub = round2(bonuses * BONUS_TO_RUB);
+  try {
+    await sb.from('users').update({ bonuses: 0, savings: round2(Number(currentUser.savings) + rub), bonuses_updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+    await addHistory('Обмен ' + fmt(bonuses) + ' бонусов на ' + fmt(rub) + ' ₽ в накопления', 0, 'info');
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+async function shopExchangeCustom(){
+  var b = parseFloat(document.getElementById('shopBonusAmt').value);
+  if (!b || b <= 0) return alert('Введите количество');
+  if (b > Number(currentUser.bonuses)) return alert('Недостаточно бонусов');
+  var rub = round2(b * BONUS_TO_RUB);
+  try {
+    await sb.from('users').update({ bonuses: round2(Number(currentUser.bonuses) - b), savings: round2(Number(currentUser.savings) + rub), bonuses_updated_at: new Date().toISOString() }).eq('id', currentUser.id);
+    await addHistory('Обмен ' + fmt(b) + ' бонусов на ' + fmt(rub) + ' ₽ в накопления', 0, 'info');
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== НАСТРОЙКИ ============== */
+function openSettingsModal(){
+  openModal(
+    '<h2>Настройки</h2><div class="sub">Профиль: '+currentUser.name+'</div>'
+    + '<div class="section-title">Смена пароля</div>'
+    + '<div class="field"><label>Новый пароль</label><input id="setNewPass" type="password" placeholder="Новый пароль"></div>'
+    + '<button class="btn btn-ghost" onclick="changePassword()">Сменить пароль</button>'
+    + '<div class="section-title">Смена имени</div>'
+    + '<div class="field"><label>Новое имя</label><input id="setNewName" type="text" placeholder="Новое имя"></div>'
+    + '<button class="btn btn-ghost" onclick="changeName()">Сменить имя</button>'
+    + '<div class="section-title">Опасная зона</div>'
+    + '<div class="sub" style="margin-bottom:14px">Удаление аккаунта необратимо.</div>'
+    + '<button class="btn btn-danger" onclick="deleteAccount()">Удалить аккаунт</button>'
+  );
+}
+async function changePassword(){
+  var p = document.getElementById('setNewPass').value;
+  if (!p || p.length < 3) return alert('Пароль минимум 3 символа');
+  try {
+    await sb.from('users').update({ password: p }).eq('id', currentUser.id);
+    currentUser.password = p;
+    try { localStorage.setItem('tfb_last_pass', p); } catch(e){}
+    closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+async function changeName(){
+  var n = document.getElementById('setNewName').value.trim();
+  if (!n) return alert('Введите имя');
+  if (n === currentUser.name) return alert('Это ваше текущее имя');
+  if (n === 'admin') return alert('Имя admin зарезервировано');
+  try {
+    var r = await sb.from('users').select('id').eq('name', n).limit(1);
+    if (r.error) throw new Error(r.error.message);
+    if (r.data && r.data[0]) return alert('Имя уже занято');
+    await sb.from('users').update({ name: n }).eq('id', currentUser.id);
+    currentUser.name = n;
+    try { localStorage.setItem('tfb_last_name', n); } catch(e){}
+    await refresh(); render(); closeModal(); showSuccess();
+  } catch(e){ alert(e.message); }
+}
+async function deleteAccount(){
+  if (!confirm('Удалить аккаунт навсегда?')) return;
+  if (!confirm('Точно? Это необратимо.')) return;
+  try {
+    await sb.from('users').delete().eq('id', currentUser.id);
+    logout();
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== АДМИН ============== */
+async function openAdminModal(){
+  if (!isAdmin()) return alert('Доступ только для администратора');
+  openModal('<h2>Админ-панель</h2><div class="loading">Загрузка...</div>');
+  try {
+    var r = await sb.from('users').select('*').order('name');
+    if (r.error) throw new Error(r.error.message);
+    var users = r.data || [];
+    var html = '<h2>Админ-панель</h2><div class="sub">Управление счетами</div>';
+    for (var i = 0; i < users.length; i++){
+      var u = users[i];
+      var safe = u.name.replace(/'/g, "\\'");
+      var mark = (u.is_admin === true || u.is_admin === 1 || u.is_admin === '1' || u.is_admin === 'true') ? ' (админ)' : '';
+      html += '<div class="user-row"><div class="user-info">'
+            + '<div class="user-name">'+u.name+mark+'</div>'
+            + '<div class="user-meta">Счёт: '+fmt(u.balance)+' ₽ · Бонусы: '+fmt(u.bonuses)+'<br>'
+            + 'Накопления: '+fmt(u.savings)+' ₽<br>'
+            + 'Кредитка: '+fmt(u.credit_limit||0)+' ₽ · долг '+fmt(u.credit_debt||0)+' ₽</div></div>'
+            + '<button class="btn btn-ghost" style="width:auto;padding:10px 14px;font-size:13px" onclick="openAdminOps('+u.id+', \''+safe+'\')">Операции</button></div>';
+    }
+    openModal(html);
+  } catch(e){ openModal('<h2>Админ</h2><div class="empty">'+e.message+'</div>'); }
+}
+function openAdminOps(userId, userName){
+  if (!isAdmin()) return alert('Только для админа');
+  openModal(
+    '<h2>'+userName+'</h2><div class="sub">Начисления и списания</div>'
+    + '<div class="section-title">Баланс</div>'
+    + '<div class="field"><label>Сумма</label><input id="admBalAmt" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<div class="flex-gap"><button class="btn" onclick="adminBalance('+userId+', 1)">Начислить</button>'
+    + '<button class="btn btn-ghost" onclick="adminBalance('+userId+', -1)">Списать</button></div>'
+    + '<div class="section-title">Накопления</div>'
+    + '<div class="field"><label>Сумма</label><input id="admSavAmt" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<div class="flex-gap"><button class="btn" onclick="adminSavings('+userId+', 1)">Начислить</button>'
+    + '<button class="btn btn-ghost" onclick="adminSavings('+userId+', -1)">Списать</button></div>'
+    + '<div class="section-title">Бонусы</div>'
+    + '<div class="field"><label>Количество</label><input id="admBonAmt" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<div class="flex-gap"><button class="btn" onclick="adminBonuses('+userId+', 1)">Начислить</button>'
+    + '<button class="btn btn-ghost" onclick="adminBonuses('+userId+', -1)">Списать</button></div>'
+    + '<div class="section-title">Кредитная карта</div>'
+    + '<div class="field"><label>Лимит</label><input id="admLimit" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<button class="btn btn-ghost" onclick="adminSetLimit('+userId+')">Установить лимит</button>'
+    + '<div class="mt12"></div><div class="field"><label>Списать задолженность</label><input id="admDebt" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<button class="btn btn-ghost" onclick="adminRepayDebt('+userId+')">Погасить долг</button>'
+    + '<div class="section-title">Страховая выплата</div>'
+    + '<div class="sub" style="margin-bottom:10px">Выплатить 5× от месячной суммы полиса</div>'
+    + '<div class="field"><label>Сумма выплаты, ₽</label><input id="admPayout" type="number" min="0" step="0.01" placeholder="0.00"></div>'
+    + '<button class="btn btn-ghost" onclick="adminPayout('+userId+')">Выплатить</button>'
+    + '<button class="btn btn-ghost mt20" onclick="openAdminModal()">Назад</button>'
+  );
+}
+async function adminBalance(userId, sign){
+  if (!isAdmin()) return;
+  var amt = parseFloat(document.getElementById('admBalAmt').value);
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  try {
+    var r = await sb.from('users').select('*').eq('id', userId).single();
+    if (r.error) throw new Error(r.error.message);
+    var cur = Number(r.data.balance) || 0;
+    if (sign < 0 && amt > cur) return alert('Недостаточно средств');
+    var next = sign > 0 ? round2(cur + amt) : round2(cur - amt);
+    await sb.from('users').update({ balance: next }).eq('id', userId);
+    await sb.from('history').insert({ user_id: userId, description: (sign>0?'Начисление на счёт':'Списание со счёта')+' ('+currentUser.name+')', amount: sign>0?amt:-amt, kind: sign>0?'income':'expense' });
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openAdminModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function adminSavings(userId, sign){
+  if (!isAdmin()) return;
+  var amt = parseFloat(document.getElementById('admSavAmt').value);
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  try {
+    var r = await sb.from('users').select('*').eq('id', userId).single();
+    var cur = Number(r.data.savings) || 0;
+    if (sign < 0 && amt > cur) return alert('Недостаточно средств');
+    var next = sign > 0 ? round2(cur + amt) : round2(cur - amt);
+    await sb.from('users').update({ savings: next }).eq('id', userId);
+    await sb.from('history').insert({ user_id: userId, description: (sign>0?'Начисление на накопления':'Списание с накоплений')+' ('+currentUser.name+')', amount: sign>0?amt:-amt, kind: sign>0?'income':'expense' });
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openAdminModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function adminBonuses(userId, sign){
+  if (!isAdmin()) return;
+  var amt = parseFloat(document.getElementById('admBonAmt').value);
+  if (!amt || amt <= 0) return alert('Введите количество');
+  try {
+    var r = await sb.from('users').select('*').eq('id', userId).single();
+    var cur = Number(r.data.bonuses) || 0;
+    if (sign < 0 && amt > cur) return alert('Недостаточно бонусов');
+    var next = sign > 0 ? round2(cur + amt) : round2(cur - amt);
+    await sb.from('users').update({ bonuses: next, bonuses_updated_at: new Date().toISOString() }).eq('id', userId);
+    await sb.from('history').insert({ user_id: userId, description: (sign>0?'Начисление бонусов':'Списание бонусов')+' ('+currentUser.name+')', amount: 0, kind: 'info' });
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openAdminModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function adminSetLimit(userId){
+  if (!isAdmin()) return;
+  var lim = parseFloat(document.getElementById('admLimit').value);
+  if (isNaN(lim) || lim < 0) return alert('Некорректный лимит');
+  try {
+    await sb.from('users').update({ credit_limit: round2(lim) }).eq('id', userId);
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openAdminModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function adminRepayDebt(userId){
+  if (!isAdmin()) return;
+  var amt = parseFloat(document.getElementById('admDebt').value);
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  try {
+    var r = await sb.from('users').select('*').eq('id', userId).single();
+    var debt = Number(r.data.credit_debt) || 0;
+    if (amt > debt) return alert('Сумма больше долга');
+    await sb.from('users').update({ credit_debt: round2(debt - amt) }).eq('id', userId);
+    await sb.from('history').insert({ user_id: userId, description: 'Погашение долга администратором ('+currentUser.name+')', amount: 0, kind: 'info' });
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openAdminModal(); });
+  } catch(e){ alert(e.message); }
+}
+async function adminPayout(userId){
+  if (!isAdmin()) return;
+  var amt = parseFloat(document.getElementById('admPayout').value);
+  if (!amt || amt <= 0) return alert('Введите сумму');
+  try {
+    var r = await sb.from('users').select('*').eq('id', userId).single();
+    var cur = Number(r.data.balance) || 0;
+    await sb.from('users').update({ balance: round2(cur + amt) }).eq('id', userId);
+    await sb.from('history').insert({ user_id: userId, description: 'Страховая выплата ('+currentUser.name+')', amount: amt, kind: 'income' });
+    await refresh(); render(); closeModal();
+    showSuccess(function(){ openAdminModal(); });
+  } catch(e){ alert(e.message); }
+}
+
+/* ============== СТАРТ ============== */
+/*
+   Логика:
+   1. Если в localStorage сохранён id пользователя — молча входим, показываем главный экран, приветствие.
+   2. Если id нет, но есть сохранённый логин/пароль — пытаемся войти по ним, приветствие.
+   3. Если ни id, ни пары логин/пароль — показываем экран входа.
+   Регистрации нет — новых пользователей создаёт только админ через базу.
+*/
+(async function init(){
+  var uid = null, ln = null, lp = null;
+  try {
+    uid = localStorage.getItem('tfb_user_id');
+    ln  = localStorage.getItem('tfb_last_name');
+    lp  = localStorage.getItem('tfb_last_pass');
+  } catch(e){}
+
+  if (uid){
+    try {
+      var r = await sb.from('users').select('*').eq('id', uid).limit(1);
+      if (r.data && r.data[0]){
+        currentUser = r.data[0];
+        await refresh();
+        showMain();
+        showWelcome(currentUser.name);   // приветствие показывается ВСЕГДА
+        return;
+      }
+    } catch(e){}
+  }
+
+  if (ln && lp){
+    var ok = await tryAutoLogin(ln, lp);
+    if (ok){
+      showMain();
+      showWelcome(currentUser.name);
+      return;
+    }
+  }
+
+  // Нет сохранённых данных — показываем экран входа
+  document.getElementById('authScreen').classList.remove('hidden');
+})();
+</script>
+</body>
+</html>
